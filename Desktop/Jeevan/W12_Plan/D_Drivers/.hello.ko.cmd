@@ -1,0 +1,1 @@
+cmd_/home/jeev/Desktop/Jeevan/W12_Plan/D_Drivers/hello.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/jeev/Desktop/Jeevan/W12_Plan/D_Drivers/hello.ko /home/jeev/Desktop/Jeevan/W12_Plan/D_Drivers/hello.o /home/jeev/Desktop/Jeevan/W12_Plan/D_Drivers/hello.mod.o ;  true

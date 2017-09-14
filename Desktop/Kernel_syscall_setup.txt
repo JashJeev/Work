@@ -1,0 +1,121 @@
+
+How to implement new system call into kernel image
+
+https://tssurya.wordpress.com/2014/08/19/adding-a-hello-world-system-call-to-linux-kernel-3-16-0/ 
+
+version 3.x steps
+----------------------------------------------------------------------------
+Step 1: Get the source
+		The first step is to download the source code of the Linux kernel. 
+
+		apt-get source linux-image-$(uname -r)
+
+-------------------
+Step 2: Add system call to system call table
+
+		Open the file arch/x86/kernel/syscall_table_32.S and add the following line.
+
+
+		.long sys_hello  -->add usr/src/linux-4.7.2/arch/x86/entry/syscalls/syscall_32.tbl
+							at last
+							380	i386	hello			sys_hello
+-----------------------
+Step 3: Define macros associated with system call
+
+	1)	Open the file arch/x86/include/asm/unistd_32.h. 
+		
+		You will notice that a macro is defined for each system call. At the end of the huge macro definition,
+		add a definition for our new system call. I added the following line:
+		
+		#define __NR_hello 349
+		
+			--->usr/src/linux-4.7.2/arch/x86/include/generated/uapi/asm/unistd_32.h
+				add #define __NR_hello 380
+				
+				or
+				
+				usr/src/linux-4.7.2/arch/sh/include/uapi/asm/unistd_32.h
+				usr/src/linux-4.7.2/arch/sh/include/uapi/asm/unistd_64.h
+				add #define __NR_hello 380
+				
+	2)	and accordingly incremented the value of the macro NR_SYSCALLS:
+
+		#define NR_syscalls 350--->not needed
+		
+	3)	Also, add the macro definition to the file arch/x86/include/asm/unistd_64.h
+
+
+		#define __NR_hello 312
+		__SYSCALL(__NR_hello, sys_hello)
+		
+		---->usr/src/linux-4.7.2/arch/x86/include/generated/asm/syscalls_32.h
+			add last
+				#define __NR_hello 380
+				__SYSCALL(__NR_hello, sys_hello,)
+	
+	4)	Now to the file include/linux/syscalls.h, add the prototype of the system call.
+
+		asmlinkage long sys_hello(void);
+		
+		---->usr/src/linux-4.7.2/include/linux/syscalls.h
+				add last
+				asmlinkage long sys_hello(void);
+
+	5)	Now, in the root directory of the kernel sources, create a directory named "hello" and in it, a file hello.c with the following content:
+
+		#include <linux/kernel.h>
+ 
+		asmlinkage long sys_hello(void)
+		{
+			printk("Hello world/n");
+			return 0;
+		}
+		
+	6)  After creating the function definition, create a file named Makefile within the hello directory and the following content to the file:
+	
+		obj-y := hello.o
+		
+	7)  Now, to the Makefile in the root directory of the kernel sources, edit the following line:
+	
+		from: core-y          += kernel/ mm/ fs/ ipc/ security/ crypto/ block/
+		to  : core-y          += kernel/ mm/ fs/ ipc/ security/ crypto/ block/ hello/
+		
+4) Compile the kernel and reboot]
+
+5) Write an app in user space
+	
+	#include <stdio.h>
+	#include <linux/kernel.h>
+	#include <sys/syscall.h>
+	#include <unistd.h>
+ 
+	#define __NR_hello 312 //349 if you are running a 32bit kernel and following my tutorial
+ 
+	long hello_syscall(void)
+	{
+		return syscall(__NR_hello);
+	}
+ 
+	int main(int argc, char *argv[])
+	{
+		long int a = hello_syscall();
+		printf("System call returned %ld\n", a);
+		return 0;
+	}
+	
+6)The output of the program would be:
+
+	"System call returned 0"
+7)The printk’s output get written to the kernel log. To view it, run the command
+		"dmesg"
+----------------------------------------------------------------------------
+https://tssurya.wordpress.com/2014/08/19/adding-a-hello-world-system-call-to-linux-kernel-3-16-0/
+
+1)/usr/src/linux-4.7.2/arch/x86/entry/syscalls/syscall_64.tbl
+	add
+		546	64	hello			sys_hello
+
+This has to be noted down to make the system call in the userspace program.
+2)/usr/src/linux-4.7.2/include/linux/syscalls.h
+	add
+		asmlinkage long sys_hello(void);
